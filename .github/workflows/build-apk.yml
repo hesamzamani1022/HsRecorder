@@ -78,6 +78,35 @@ jobs:
           echo "Gradle version: $GRADLE_VERSION"
           echo "gradle-version=$GRADLE_VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Fix missing launcher icon
+        working-directory: ${{ steps.project.outputs.dir }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          MANIFEST="app/src/main/AndroidManifest.xml"
+
+          if [ ! -f "$MANIFEST" ]; then
+            echo "::error::AndroidManifest.xml was not found."
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          manifest = Path("app/src/main/AndroidManifest.xml")
+          text = manifest.read_text(encoding="utf-8")
+
+          for quote in ('"', "'"):
+              text = text.replace(
+                  "@mipmap/ic_launcher" + quote,
+                  "@android:drawable/ic_btn_speak_now" + quote,
+              )
+
+          manifest.write_text(text, encoding="utf-8")
+          print("Launcher icon reference updated to the Android microphone icon.")
+          PY
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
